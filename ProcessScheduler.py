@@ -24,6 +24,7 @@ class NoOfProcessesWindow(QDialog) :
         self.show()
 
     def createLayout(self):
+        # vbox & hbox to resize the window
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
 
@@ -43,7 +44,7 @@ class NoOfProcessesWindow(QDialog) :
         hbox.addWidget(self.spinBox)
 
         # a push button to switch to 2nd menu
-        self.button = QPushButton("OK", self)
+        self.button = QPushButton("Next", self)
         self.button.setFont(QtGui.QFont("Sanserif", 12))
         self.button.setToolTip("Proceed to next step")
         self.button.setMaximumWidth(300)
@@ -62,6 +63,7 @@ class NoOfProcessesWindow(QDialog) :
         self.schedulertype = TypeOfSchedulingWindow(self.spinBox.value())
 
 
+# 2nd window to determine scheduling algorithm
 class TypeOfSchedulingWindow (QDialog) :
     def __init__(self, noOfProcesses):
         super().__init__()
@@ -112,7 +114,7 @@ class TypeOfSchedulingWindow (QDialog) :
         grid.addWidget(self.radiobtn4, 1, 1)
 
         # a push button to switch to 3rd menu
-        self.button = QPushButton("OK", self)
+        self.button = QPushButton("Next", self)
         self.button.setFont(QtGui.QFont("Sanserif", 12))
         self.button.setToolTip("Proceed to next step")
         self.button.setMinimumWidth(150)
@@ -130,8 +132,9 @@ class TypeOfSchedulingWindow (QDialog) :
 
     def onButtonPressed(self):
         self.hide()
+        # depending upon the user choice, the targeted window opens
         if self.radiobtn1.isChecked() :
-            self.fcfs = FCFS(self.noOfProcesses)
+            self.fcfs = GetInputWindow(self.noOfProcesses)
         elif self.radiobtn4.isChecked():
             self.rr = RR(self.noOfProcesses)
         elif self.radiobtn3.isChecked():
@@ -140,7 +143,8 @@ class TypeOfSchedulingWindow (QDialog) :
             self.sjf = SJF(self.noOfProcesses)
 
 
-class FCFS (QDialog) :
+# getting input window
+class GetInputWindow (QDialog) :
     def __init__(self, noOfProcesses):
         super().__init__()
 
@@ -170,21 +174,29 @@ class FCFS (QDialog) :
         self.grid = QGridLayout()
         self.arrivalList = []
         self.burstList = []
+
         for i in range(self.noOfProcesses):
 
             hbox = QHBoxLayout()
 
+            # group box for each process
             groupbox = QGroupBox("Process " + str(i+1))
             groupbox.setFont(QtGui.QFont("Sanserif", 14))
+            groupbox.setMinimumHeight(175)
 
             self.label1 = QLabel("Arrival time")
             self.label1.setFont(QtGui.QFont("Sanserif", 12))
             hbox.addWidget(self.label1)
 
+            # for the input of arrival time
             self.lineEdit1 = QLineEdit(self)
             self.lineEdit1.setFont(QtGui.QFont("Sanserif", 12))
             self.lineEdit1.setMaximumWidth(100)
             hbox.addWidget(self.lineEdit1)
+
+            # appending the arrival time in a list
+            # so as to access its value later on
+            self.arrivalList.append(self.lineEdit1)
 
             hbox.addStretch()
 
@@ -192,13 +204,15 @@ class FCFS (QDialog) :
             self.label2.setFont(QtGui.QFont("Sanserif", 12))
             hbox.addWidget(self.label2)
 
+            # for the input of arrival time
             self.lineEdit2 = QLineEdit(self)
             self.lineEdit2.setFont(QtGui.QFont("Sanserif", 12))
             self.lineEdit2.setMaximumWidth(100)
             hbox.addWidget(self.lineEdit2)
 
-            # self.arrivalDict.append(self.lineEdit1)
-            # self.burstList.append(self.lineEdit2)
+            # appending the arrival time in a list
+            # so as to access its value later on
+            self.burstList.append(self.lineEdit2)
 
             groupbox.setLayout(hbox)
 
@@ -207,13 +221,13 @@ class FCFS (QDialog) :
             else :
                 self.grid.addWidget(groupbox, i-1, 1)
 
-
-        # a push button to switch to 3rd menu
+        # a push button to draw
         self.button = QPushButton("Draw", self)
         self.button.setFont(QtGui.QFont("Sanserif", 12))
         self.button.setToolTip("Proceed to next step")
         self.button.setMinimumWidth(150)
-        # self.button.clicked.connect(self.draw)
+        self.button.setMaximumWidth(150)
+        self.button.clicked.connect(self.fetch)
 
         if self.noOfProcesses<=1:
             self.grid.addWidget(self.button, 1, 0)
@@ -224,23 +238,90 @@ class FCFS (QDialog) :
 
         self.setLayout(self.grid)
 
-    # def collectValues(self):
-    #     self.arrivalDict.append(int(self.lineEdit1.value()))
-    #     print(self.arrivalDict)
+    # fn to get user inputs
+    def fetch(self):
+        self.arrivalDict = dict()
+        self.burstDict = dict()
 
-    # def draw(self):
-    #     vbox = QVBoxLayout()
-    #     # hbox = QHBoxLayout()
-    #
-    #     for elem in sorted(self.arrivalDict.items() ,  key=lambda x: x[1]):
-    #         self.label1.setText("Process ", elem[0], "arrived at ", elem[1]/
-    #                             "& will take ", self.burstDict[ elem[0] ])
-    #         vbox.addWidget(self.label1)
-    #
-    #     self.setLayout(vbox)
+        # fetch input values into dictionaries
+        # where key is Pi and value is either arrivalTime or BurstTime
+        for i in range(len(self.arrivalList)):
+            processName = "P"+str(i+1)
+            processArrival = int(self.arrivalList[i].text())
+            processBurst = int(self.burstList[i].text())
+            self.arrivalDict[processName] = processArrival
+            self.burstDict[processName] = processBurst
+
+        self.hide()
+        self.draw = DrawFCFS(self.arrivalDict, self.burstDict)
 
 
+class DrawFCFS (QDialog):
+    def __init__(self, arrivaldict, burstdict):
+        super().__init__()
 
+        self.arrivalDict = arrivaldict
+        self.burstDict = burstdict
+
+        #setting the main window in the class constructor
+        self.title = "FCFS"
+        self.left = 700
+        self.top = 350
+        self.width = 500
+        self.height = 250
+        self.iconName = "process.png"
+
+        self.setWindowTitle(self.title)
+        self.setWindowIcon(QtGui.QIcon(self.iconName))
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.createLayout()
+
+        self.show()
+
+    def createLayout(self):
+        vbox = QVBoxLayout()
+        hbox = QHBoxLayout()
+
+        groupbox = QGroupBox("Processes after scheduling")
+        groupbox.setFont(QtGui.QFont("Sanserif", 14))
+        groupbox.setMinimumHeight(175)
+
+        # sorting dictionaries according to arrival time
+        listofTuples = sorted(self.arrivalDict.items(), key=lambda x: x[1])
+        for elem in listofTuples:
+            self.button = QPushButton(self)
+            self.button.setText(elem[0])
+            self.button.setFont(QtGui.QFont("Sanserif", 12))
+            tooltiptitle = "Arrival: " + str(elem[1]) + "\nBurst: " + str(self.burstDict[elem[0]])
+            self.button.setToolTip(tooltiptitle)
+            potentialwidth = self.burstDict[elem[0]] * 35
+            self.button.setMinimumWidth(potentialwidth)
+
+            hbox.addWidget(self.button)
+
+        self.button = QPushButton("Reset", self)
+        self.button.setFont(QtGui.QFont("Sanserif", 12))
+        self.button.setToolTip("Go to main window")
+        self.button.setMinimumWidth(150)
+        self.button.clicked.connect(self.onButtonPressed)
+
+        groupbox.setLayout(hbox)
+        vbox.addWidget(groupbox)
+        vbox.addWidget(self.button, 0, QtCore.Qt.AlignCenter)
+        self.setLayout(vbox)
+
+    def onButtonPressed(self):
+        self.hide()
+        self.reset = NoOfProcessesWindow()
+
+
+# running the program
+App = QApplication(sys.argv)
+window = NoOfProcessesWindow()
+sys.exit(App.exec())
+
+# under modification
 
 class SJF (QDialog) :
     def __init__(self, noOfProcesses):
@@ -472,9 +553,3 @@ class Priority (QDialog) :
         self.setLayout(self.grid)
 
 
-
-
-
-App = QApplication(sys.argv)
-window = NoOfProcessesWindow()
-sys.exit(App.exec())
