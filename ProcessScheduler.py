@@ -299,12 +299,7 @@ class GetInputWindow (QDialog) :
         self.button.setMaximumWidth(150)
         self.button.clicked.connect(self.fetch)
 
-        if self.noOfProcesses<=1:
-            self.grid.addWidget(self.button, 1, 0)
-        elif self.noOfProcesses%2 == 0:
-            self.grid.addWidget(self.button,  1+self.noOfProcesses//2, 0)
-        else:
-            self.grid.addWidget(self.button)
+        self.grid.addWidget(self.button)
 
         self.setLayout(self.grid)
 
@@ -412,6 +407,7 @@ class Draw (QDialog):
             for item in self.arrivalDict.items():
                 if item[1]==firstarrival:
                     priorityDictofFirstArrivals[item[0]] = self.priorityDict[item[0]]
+            
             listofTuples = sorted(priorityDictofFirstArrivals.items(), key=lambda x: x[1])
       
             firstelement = listofTuples[0][0]
@@ -448,6 +444,64 @@ class Draw (QDialog):
                 self.button = QPushButton(self)
                 self.button.setText(p)
                 self.button.setFont(QtGui.QFont("Sanserif", 12))
+                # tooltiptitle = "Arrival: " + str(self.arrivalDict[p]) + "\nBurst: " + str(self.burstDict[p]) + "\nPriority: " + str(self.priorityDict[p])
+                # self.button.setToolTip(tooltiptitle)
+                potentialwidth = self.burstDict[p]
+                self.button.setMinimumWidth(potentialwidth*35)
+                self.button.setMaximumWidth(potentialwidth*50)
+
+                hbox.addWidget(self.button)
+
+
+        elif self.algorithm == "SJF" and self.type == "Non-Preemptive":
+            # getting the processes that arrived firstly
+            firstarrival = min(self.arrivalDict.values())
+            noOfFirstArrivals = sum(v == firstarrival for v in self.arrivalDict.values())
+
+            burstDictofFirstArrivals = dict()
+
+            # getting shortest processes that arrived firstly by sorting them
+            for item in self.arrivalDict.items():
+                if item[1]==firstarrival:
+                    burstDictofFirstArrivals[item[0]] = self.burstDict[item[0]]
+            
+            listofTuples = sorted(burstDictofFirstArrivals.items(), key=lambda x: x[1])
+      
+            firstelement = listofTuples[0][0]
+            # putting first element in ordered list for drawing
+            orderedlist = [firstelement]
+            # removing the first element from arrival list 
+            self.arrivalDict.pop(firstelement)
+
+            soFarBurst = self.burstDict[firstelement]
+
+            while soFarBurst < self.totalBurstTime:
+                # getting processes to get processed next
+                listofTuples = sorted(self.arrivalDict.items(), key=lambda x: x[1])
+
+                burstDictofOtherArrivals = dict()
+
+                # if process arrived while processing the ones before it, include it with the next ones
+                for elem in listofTuples:
+                    if elem[1] <= firstarrival+soFarBurst:
+                        burstDictofOtherArrivals[elem[0]] = self.burstDict[elem[0]]
+                    else :
+                        break
+             
+                listofTuples = sorted(burstDictofOtherArrivals.items(), key=lambda x: x[1])
+                
+                # adding ready processes to the ordered list 
+                for elem in listofTuples:
+                    orderedlist.append(elem[0])
+                    self.arrivalDict.pop(elem[0])
+                    soFarBurst += self.burstDict[elem[0]]
+
+            for p in orderedlist:
+                self.button = QPushButton(self)
+                self.button.setText(p)
+                self.button.setFont(QtGui.QFont("Sanserif", 12))
+                # tooltiptitle = "Arrival: " + str(self.arrivalDict[p]) + "\nBurst: " + str(self.burstDict[p])
+                # self.button.setToolTip(tooltiptitle)
                 potentialwidth = self.burstDict[p]
                 self.button.setMinimumWidth(potentialwidth*35)
                 self.button.setMaximumWidth(potentialwidth*50)
