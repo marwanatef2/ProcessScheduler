@@ -399,7 +399,6 @@ class Draw (QDialog):
         elif self.algorithm == "Priority" and self.type == "Non-Preemptive":
             # getting the processes that arrived firstly
             firstarrival = min(self.arrivalDict.values())
-            noOfFirstArrivals = sum(v == firstarrival for v in self.arrivalDict.values())
 
             priorityDictofFirstArrivals = dict()
 
@@ -453,6 +452,7 @@ class Draw (QDialog):
                 hbox.addWidget(self.button)
 
 
+        # non-preemptive shortest job first
         elif self.algorithm == "SJF" and self.type == "Non-Preemptive":
             # getting the processes that arrived firstly
             firstarrival = min(self.arrivalDict.values())
@@ -508,6 +508,53 @@ class Draw (QDialog):
 
                 hbox.addWidget(self.button)
 
+
+        # round robbin
+        elif self.algorithm == "RR":
+            # sorting dictionaries according to arrival time
+            listofTuples = sorted(self.arrivalDict.items(), key=lambda x: x[1])
+
+            firstelement = listofTuples[0][0]
+            firstarrival = listofTuples[0][1]
+            soFarBurst = 0
+            readyQueue = [firstelement]
+            printqueue = [firstelement]
+
+            while soFarBurst < self.totalBurstTime:
+                length = len(readyQueue)
+                for index in range(length):
+                    # drawing the ready processes in the queue 
+                    self.button = QPushButton(self)
+                    pname = readyQueue[0]
+                    self.button.setText(pname)
+                    self.button.setFont(QtGui.QFont("Sanserif", 12))
+                    potentialwidth = min(self.quantum, self.burstDict[pname])
+                    self.button.setMinimumWidth(potentialwidth*35)
+                    self.button.setMaximumWidth(potentialwidth*50)
+                    tooltiptitle = "Start: " + str(firstarrival+soFarBurst) + "\nEnd: " + str(firstarrival+soFarBurst+potentialwidth)
+                    self.button.setToolTip(tooltiptitle)
+
+
+                    hbox.addWidget(self.button)
+
+                    # adding proccesses that arrived while execution to the ready queue
+                    for elem in listofTuples:
+                        if (elem[1] > (firstarrival+soFarBurst) and elem[1] <= (firstarrival+soFarBurst+potentialwidth)):
+                            readyQueue.append(elem[0])
+                            printqueue.append(elem[0])
+ 
+                    # adding the taken burst to the total burst
+                    # and reducing it from the process burst
+                    soFarBurst += potentialwidth
+                    self.burstDict[pname] -= potentialwidth
+
+                    # removing the process from the beginning of the queue
+                    # and adding to the end just in case it is not finished yet
+                    readyQueue.pop(0)
+                    if self.burstDict[pname]>0:
+                        readyQueue.append(pname)
+                        printqueue.append(pname)
+            
 
         # reset button to go back to main window
         self.button = QPushButton("Reset", self)
